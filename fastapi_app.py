@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import StreamingResponse
+from fastapi.websockets import WebSocket
 from typing import List, Optional
 import asyncio
 import cv2
@@ -8,9 +9,8 @@ app = FastAPI()
 
 app.on_event("startup")(lambda: print("App started"))
 
-
+cap = cv2.VideoCapture(0)
 def stream_video(video_path):
-    cap = cv2.VideoCapture(video_path)
     while True:
         ret, frame = cap.read()
         if ret:
@@ -34,6 +34,16 @@ def root():
 @app.get("/stream")
 def stream(request: Request, response: Response):
     return StreamingResponse(stream_video(0), media_type='multipart/x-mixed-replace; boundary=frame')
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        # revieve message from client as json
+        data = await websocket.receive_json()
+        print(data)
+        await websocket.send_text(f"Hello World during the coronavirus pandemic!")
+        await websocket.send_bytes(stream_video(0))
 
 if __name__ == '__main__':
     import uvicorn

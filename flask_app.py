@@ -1,9 +1,11 @@
 import cv2
 from flask import Flask, render_template, Response, jsonify
 from flask import Response
+import os
+
+cap = cv2.VideoCapture(0)
 
 def stream_video(video_path):
-    cap = cv2.VideoCapture(video_path)
     while True:
         ret, frame = cap.read()
         if ret:
@@ -11,7 +13,6 @@ def stream_video(video_path):
                 break
             data = {
                 'frame': cv2.imencode('.jpg', frame)[1].tobytes(),
-                'success': True
             }
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + data['frame'] + b'\r\n\r\n')
@@ -32,9 +33,17 @@ app = Flask(__name__)
 def index():
     return jsonify({"message": "Hello, World!"})
 
-@app.route('/video_feed')
+@app.route('/stream')
 def video_feed():
     return Response(stream_video(0), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route("/stop_server")
+def stop_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    return 'Server shutting down...'
+
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(port=8000, debug=True)
