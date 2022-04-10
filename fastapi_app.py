@@ -4,6 +4,8 @@ from fastapi.websockets import WebSocket
 from typing import List, Optional
 import asyncio
 import cv2
+import json
+import base64
 
 app = FastAPI()
 
@@ -27,9 +29,29 @@ def stream_video(video_path):
     cap.release()
     cv2.destroyAllWindows()
 
+def stream_video_dict(video_path):
+    while True:
+        ret, frame = cap.read()
+        if ret:
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            frame = cv2.imencode('.jpg', frame)[1].tobytes(),
+            # get only frame from the tuple
+            frame = frame[0]
+            encoded_frame = base64.b64encode(frame).decode('utf-8')
+            data = {
+                'success': True,
+                'frame': encoded_frame
+            }
+            yield data
+        else:
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
 @app.get("/")
 def root():
-    return {"message": "Hello World during the coronavirus pandemic!"}
+    return {"message": "Hello World"}
 
 @app.get("/stream")
 def stream(request: Request, response: Response):
@@ -42,8 +64,18 @@ async def websocket_endpoint(websocket: WebSocket):
         # revieve message from client as json
         data = await websocket.receive_json()
         print(data)
-        await websocket.send_text(f"Hello World during the coronavirus pandemic!")
-        await websocket.send_bytes(stream_video(0))
+        if data['action'] == 'start':
+            for frame in stream_video_dict(0):
+                print(type(frame))
+                await websocket.send_json(frame)
+        elif data['action'] == 'stop':
+            await websocket.send_json({'action': 'stop'})
+            break
+        else:
+            await websocket.send_json({'action': 'unknown'})
+        # stream a response to the client type json with generator
+        #await websocket.send_json(stream_video_dict(0))
+        #await websocket.send_bytes(stream_video_dict(0))
 
 if __name__ == '__main__':
     import uvicorn
