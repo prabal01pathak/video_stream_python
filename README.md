@@ -29,8 +29,6 @@ python3 flask_app.py
 ## Run tests
 
 ```sh
-cd tests
-
 pytest
 
 ```
