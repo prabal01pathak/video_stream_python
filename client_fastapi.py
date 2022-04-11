@@ -1,4 +1,5 @@
 import websocket
+import rel
 import json
 from threading import Thread
 import cv2
@@ -7,6 +8,9 @@ import numpy as np
 
 def on_message(ws, message):
     data = json.loads(message)
+    print(data)
+
+def show_image_data(data):
     if isinstance(data, dict):
         image = base64.b64decode(data['frame'])
         npimg = np.fromstring(image, np.uint8)
@@ -51,10 +55,13 @@ def connect_websocket(url):
                                 on_message=on_message,
                                 on_error=on_error,
                                 on_open=on_open)
-    ws.run_forever()
+    ws.run_forever(dispatcher=rel)
+    rel.signal(2, rel.abort)
+    rel.dispatch()
 
-thread = Thread(target=connect_websocket, args=("ws://localhost:8000/ws",))
-thread.start()
+connect_websocket('ws://localhost:8000/ws')
+#thread = Thread(target=connect_websocket, args=("ws://localhost:8000/ws",))
+#thread.start()
 
 try:
     pass
