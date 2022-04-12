@@ -42,6 +42,38 @@ def main():
     #p.join()
     #p2.join()
 
+i = 10
+
+def worker(queue):
+    global i
+    while True:
+        try:
+            i -= 1
+            print('{} started'.format(i))
+            data = {
+                "x": i,
+                "y": i * i
+            }
+            queue.put(data)
+        except KeyboardInterrupt:
+            break
+
+def reader(queue):
+    while True:
+        try:
+            while queue.empty():
+                data = queue.get()
+                print('{} finished'.format(data))
+        except KeyboardInterrupt:
+            break
 
 if __name__ == '__main__':
-    main()
+    #main()
+    queue = Queue()
+    p1 = Process(target=worker, args=(queue,))
+    p2 = Process(target=reader, args=(queue,))
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
+

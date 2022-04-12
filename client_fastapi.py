@@ -8,7 +8,7 @@ import numpy as np
 
 def on_message(ws, message):
     data = json.loads(message)
-    print(data)
+    show_image_data(data)
 
 def show_image_data(data):
     if isinstance(data, dict):
